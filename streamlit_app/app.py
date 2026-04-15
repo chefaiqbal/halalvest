@@ -95,18 +95,7 @@ if page == "Dashboard":
         st.markdown("---")
         st.subheader("⭐ Your Watchlist Summary")
         st.write(f"You're tracking **{len(st.session_state.watchlist)}** stocks")
-
-        cols = st.columns(min(3, len(st.session_state.watchlist)))
-        for idx, symbol in enumerate(st.session_state.watchlist[:3]):
-            with cols[idx % 3]:
-                try:
-                    ticker = yf.Ticker(symbol)
-                    info = ticker.info
-                    price = info.get('currentPrice', 'N/A')
-                    st.metric(symbol, f"${price}" if isinstance(price, (int, float)) else "N/A")
-                    time.sleep(0.3)  # Add delay to avoid rate limiting
-                except:
-                    st.metric(symbol, "N/A")
+        st.info("Click 'View' to see detailed analysis for any stock")
 
 
 # ==================== STOCK ANALYSIS PAGE ====================
@@ -260,19 +249,7 @@ elif page == "My Watchlist":
             col1, col2, col3 = st.columns([2, 1, 1])
 
             with col1:
-                try:
-                    ticker = yf.Ticker(symbol)
-                    info = ticker.info
-                    price = info.get('currentPrice', 'N/A')
-
-                    rec = get_recommendation(symbol)
-                    if 'error' not in rec:
-                        st.write(f"**{symbol}** - {rec['recommendation']}")
-                        st.caption(f"Score: {rec['combined_score']:.0f}/100 | Confidence: {rec['confidence']:.0f}%")
-                    else:
-                        st.write(f"**{symbol}**")
-                except:
-                    st.write(f"**{symbol}**")
+                st.subheader(symbol)
 
             with col2:
                 if st.button("📊 View", key=f"view_{symbol}"):
