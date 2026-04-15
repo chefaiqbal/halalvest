@@ -64,13 +64,21 @@ HALAL_STOCKS = [s for s in HALAL_STOCKS if s not in CONTROVERSIAL_IN_HALAL]
 def get_company_info(symbol: str) -> Dict:
     """Get company information for halal screening with retry logic"""
     max_retries = 3
-    retry_delay = 1
+    retry_delay = 2
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.5)  # Delay before each request
+            time.sleep(1)  # Longer delay before each request
             ticker = yf.Ticker(symbol)
             info = ticker.info
+
+            if not info:  # Check if info is empty
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
+                return {}
+
             return {
                 'sector': info.get('sector', 'Unknown'),
                 'industry': info.get('industry', 'Unknown'),
@@ -93,17 +101,21 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
     Generally, D/E should be < 1.5 for halal compliance
     """
     max_retries = 3
-    retry_delay = 1
+    retry_delay = 2
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.5)  # Delay before each request
+            time.sleep(1)  # Longer delay before each request
             ticker = yf.Ticker(symbol)
             info = ticker.info
 
             debt_to_equity = info.get('debtToEquity', None)
 
             if debt_to_equity is None:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    retry_delay *= 2
+                    continue
                 return None, 'N/A'
 
             if debt_to_equity < 0.5:

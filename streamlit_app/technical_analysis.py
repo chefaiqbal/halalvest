@@ -13,11 +13,11 @@ import time
 def get_historical_data(symbol: str, period: str = '1y') -> pd.DataFrame:
     """Fetch historical stock data with retry logic"""
     max_retries = 3
-    retry_delay = 2  # Start with 2 seconds
+    retry_delay = 3  # Start with 3 seconds
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.5)  # Delay before each request
+            time.sleep(1)  # Longer delay before each request
             df = yf.download(symbol, period=period, progress=False)
             if len(df) == 0:
                 if attempt < max_retries - 1:

@@ -125,7 +125,18 @@ elif page == "Stock Analysis":
 
                 if 'error' in rec:
                     st.error(f"❌ Error: {rec['error']}")
-                    st.info("💡 Tip: Yahoo Finance may be rate-limiting requests. Try again in a few moments.")
+                    st.warning("""
+**Yahoo Finance API Issue:** The stock data service is currently unstable.
+
+**What to try:**
+1. Wait a few moments and try again
+2. Try a different stock symbol
+3. Refresh the page
+4. If it persists, Yahoo Finance may be experiencing outages
+
+Common affected stocks: AAPL, MSFT, NVDA (high-traffic tokens)
+Try: JNJ, WMT, KO, PG (more stable)
+                    """)
                 else:
                     # Halal screening
                     time.sleep(0.5)  # Add delay to avoid rate limiting
