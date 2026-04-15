@@ -246,7 +246,7 @@ elif page == "Charts & Comparison":
 
     with tab1:
         st.subheader("Stock Price Chart with Technical Indicators")
-        symbol = st.text_input("Enter stock symbol:", "JNJ")
+        symbol = st.text_input("Enter stock symbol:", "", key="price_chart_symbol")
 
         if symbol:
             with st.spinner(f"Loading chart for {symbol}..."):
@@ -255,10 +255,12 @@ elif page == "Charts & Comparison":
                     st.plotly_chart(chart, use_container_width=True)
                 else:
                     st.error(f"Could not load chart for {symbol}")
+        else:
+            st.info("👆 Enter a stock symbol above to see the price chart")
 
     with tab2:
         st.subheader("Compare Multiple Stocks")
-        symbols_input = st.text_input("Enter stock symbols separated by commas:", "AAPL,MSFT,JNJ,NVDA")
+        symbols_input = st.text_input("Enter stock symbols separated by commas:", "", key="compare_symbols")
 
         if symbols_input:
             symbols = [s.strip().upper() for s in symbols_input.split(',')]
@@ -270,10 +272,12 @@ elif page == "Charts & Comparison":
                     st.info("📊 Shows normalized performance - all stocks start at 0% for easy comparison")
                 else:
                     st.error("Could not create comparison chart")
+        else:
+            st.info("👆 Enter stock symbols above (e.g., AAPL,MSFT,JNJ) to compare")
 
     with tab3:
         st.subheader("Volume Analysis")
-        symbol = st.text_input("Enter stock symbol for volume:", "JNJ", key="volume_symbol")
+        symbol = st.text_input("Enter stock symbol for volume:", "", key="volume_symbol")
 
         if symbol:
             with st.spinner(f"Loading volume for {symbol}..."):
@@ -282,6 +286,8 @@ elif page == "Charts & Comparison":
                     st.plotly_chart(chart, use_container_width=True)
                 else:
                     st.error(f"Could not load volume data for {symbol}")
+        else:
+            st.info("👆 Enter a stock symbol above to see volume analysis")
 
 
 # ==================== PORTFOLIO PERFORMANCE PAGE ====================
@@ -299,17 +305,18 @@ elif page == "Portfolio Performance":
         with col2:
             st.write("")  # Spacing
 
-        st.markdown("---")
+        if st.button("Load Watchlist Performance"):
+            st.markdown("---")
 
-        # Watchlist performance table
-        st.subheader("📊 Watchlist Performance")
-        with st.spinner("Loading portfolio data..."):
-            perf_df = get_portfolio_summary(st.session_state.watchlist, period)
+            # Watchlist performance table
+            st.subheader("📊 Watchlist Performance")
+            with st.spinner("Loading portfolio data..."):
+                perf_df = get_portfolio_summary(st.session_state.watchlist, period)
 
-            if not perf_df.empty:
-                st.dataframe(perf_df, use_container_width=True)
-            else:
-                st.error("Could not fetch portfolio data. Try again in a moment.")
+                if not perf_df.empty:
+                    st.dataframe(perf_df, use_container_width=True)
+                else:
+                    st.error("Could not fetch portfolio data. Try again in a moment.")
 
         st.markdown("---")
 
@@ -317,34 +324,35 @@ elif page == "Portfolio Performance":
         st.subheader("💰 Hypothetical Investment Scenario")
         invested_amount = st.slider("If you invested per stock:", 100, 10000, 1000, 100)
 
-        with st.spinner("Calculating portfolio gains..."):
-            port_gains = calculate_portfolio_gains_if_invested(st.session_state.watchlist, invested_amount)
+        if st.button("Calculate Portfolio Gains"):
+            with st.spinner("Calculating portfolio gains..."):
+                port_gains = calculate_portfolio_gains_if_invested(st.session_state.watchlist, invested_amount)
 
-            col1, col2, col3 = st.columns(3)
-            with col1:
-                st.metric("Total Invested", f"${port_gains['total_invested']:,.2f}")
-            with col2:
-                st.metric("Current Value", f"${port_gains['total_current']:,.2f}")
-            with col3:
-                color = "green" if port_gains['total_gain'] > 0 else "red"
-                st.metric("Total Gain/Loss", f"${port_gains['total_gain']:,.2f}",
-                         f"{port_gains['total_gain_pct']:+.2f}%")
+                col1, col2, col3 = st.columns(3)
+                with col1:
+                    st.metric("Total Invested", f"${port_gains['total_invested']:,.2f}")
+                with col2:
+                    st.metric("Current Value", f"${port_gains['total_current']:,.2f}")
+                with col3:
+                    color = "green" if port_gains['total_gain'] > 0 else "red"
+                    st.metric("Total Gain/Loss", f"${port_gains['total_gain']:,.2f}",
+                             f"{port_gains['total_gain_pct']:+.2f}%")
 
-            st.markdown("---")
-            st.write("**Per Stock Breakdown:**")
+                st.markdown("---")
+                st.write("**Per Stock Breakdown:**")
 
-            if port_gains['stocks']:
-                gains_df = pd.DataFrame([
-                    {
-                        'Stock': g['symbol'],
-                        'Invested': f"${g['invested']:,.0f}",
-                        'Current': f"${g['current_value']:,.2f}",
-                        'Gain/Loss': f"${g['gain']:,.2f}",
-                        'Return': f"{g['gain_pct']:+.2f}%"
-                    }
-                    for g in port_gains['stocks']
-                ])
-                st.dataframe(gains_df, use_container_width=True)
+                if port_gains['stocks']:
+                    gains_df = pd.DataFrame([
+                        {
+                            'Stock': g['symbol'],
+                            'Invested': f"${g['invested']:,.0f}",
+                            'Current': f"${g['current_value']:,.2f}",
+                            'Gain/Loss': f"${g['gain']:,.2f}",
+                            'Return': f"{g['gain_pct']:+.2f}%"
+                        }
+                        for g in port_gains['stocks']
+                    ])
+                    st.dataframe(gains_df, use_container_width=True)
 
 
 
