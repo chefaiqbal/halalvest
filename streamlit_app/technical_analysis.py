@@ -7,16 +7,18 @@ import pandas as pd
 import numpy as np
 import yfinance as yf
 from typing import Dict, Tuple
+import time
 
 
 def get_historical_data(symbol: str, period: str = '1y') -> pd.DataFrame:
     """Fetch historical stock data"""
     try:
+        time.sleep(0.2)  # Add delay to avoid rate limiting
         df = yf.download(symbol, period=period, progress=False)
         if len(df) == 0:
             return pd.DataFrame()
         return df
-    except:
+    except Exception as e:
         return pd.DataFrame()
 
 

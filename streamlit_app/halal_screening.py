@@ -6,6 +6,7 @@ Screens stocks according to Islamic finance principles
 import yfinance as yf
 import pandas as pd
 from typing import List, Dict, Tuple
+import time
 
 # List of prohibited sectors (haram)
 PROHIBITED_SECTORS = {
@@ -63,6 +64,7 @@ HALAL_STOCKS = [s for s in HALAL_STOCKS if s not in CONTROVERSIAL_IN_HALAL]
 def get_company_info(symbol: str) -> Dict:
     """Get company information for halal screening"""
     try:
+        time.sleep(0.2)  # Add delay to avoid rate limiting
         ticker = yf.Ticker(symbol)
         info = ticker.info
         return {
@@ -71,7 +73,7 @@ def get_company_info(symbol: str) -> Dict:
             'company_name': info.get('longName', symbol),
             'market_cap': info.get('marketCap', 0),
         }
-    except:
+    except Exception as e:
         return {}
 
 
@@ -81,6 +83,7 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
     Generally, D/E should be < 1.5 for halal compliance
     """
     try:
+        time.sleep(0.2)  # Add delay to avoid rate limiting
         ticker = yf.Ticker(symbol)
         info = ticker.info
 
@@ -97,7 +100,7 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
             return debt_to_equity, '⚠️ Acceptable (Higher leverage)'
         else:
             return debt_to_equity, '❌ High leverage risk'
-    except:
+    except Exception as e:
         return None, 'N/A'
 
 

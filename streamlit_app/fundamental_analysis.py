@@ -5,11 +5,13 @@ Analyzes P/E ratios, debt-to-equity, ROE, profit margins
 
 import yfinance as yf
 from typing import Dict, Tuple
+import time
 
 
 def get_fundamental_metrics(symbol: str) -> Dict:
     """Fetch fundamental metrics for a stock"""
     try:
+        time.sleep(0.2)  # Add delay to avoid rate limiting
         ticker = yf.Ticker(symbol)
         info = ticker.info
 
@@ -35,7 +37,7 @@ def get_fundamental_metrics(symbol: str) -> Dict:
             'forward_earnings': info.get('forwardEps'),
             'trailing_earnings': info.get('trailingEps'),
         }
-    except:
+    except Exception as e:
         return {}
 
 

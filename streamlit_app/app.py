@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 from halal_screening import get_halal_stocks_list, screen_stock_halal
 from recommendation_engine import get_recommendation
 import yfinance as yf
+import time
 
 # Page config
 st.set_page_config(
@@ -30,6 +31,8 @@ st.markdown("""
 # Initialize session state
 if 'watchlist' not in st.session_state:
     st.session_state.watchlist = []
+if 'stock_cache' not in st.session_state:
+    st.session_state.stock_cache = {}
 
 
 def add_to_watchlist(symbol):
@@ -72,35 +75,38 @@ if page == "Dashboard":
     with col3:
         st.metric("Last Updated", "Real-time")
 
-    st.subheader("Quick Stock Overview - Top Halal Stocks")
+    st.markdown("---")
+    st.subheader("Welcome to HalalVest!")
+    st.markdown("""
+    **Get Started:**
+    1. Go to **Stock Analysis** tab to search any stock
+    2. Get instant **buy/sell/hold** recommendations
+    3. Check **halal compliance** scoring
+    4. Save to your **watchlist** for tracking
 
-    # Show top 10 halal stocks with quick analysis
-    halal_stocks = get_halal_stocks_list()[:15]
+    **Features:**
+    - 🟢 Real-time stock prices and technical analysis
+    - 📊 Fundamental analysis (P/E, ROE, margins)
+    - ✅ Halal screening (excludes prohibited sectors)
+    - ⭐ Personal watchlist
+    """)
 
-    stock_data = []
-    for symbol in halal_stocks:
-        try:
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
-            hist = yf.download(symbol, period='1d', progress=False)
+    if len(st.session_state.watchlist) > 0:
+        st.markdown("---")
+        st.subheader("⭐ Your Watchlist Summary")
+        st.write(f"You're tracking **{len(st.session_state.watchlist)}** stocks")
 
-            if not hist.empty:
-                price = hist['Close'].iloc[-1]
-                prev_price = hist['Close'].iloc[-2] if len(hist) > 1 else price
-                change = ((price - prev_price) / prev_price * 100) if prev_price > 0 else 0
-
-                stock_data.append({
-                    'Symbol': symbol,
-                    'Price': f"${price:.2f}",
-                    'Change %': f"{change:+.2f}%",
-                    'Company': info.get('longName', symbol),
-                })
-        except:
-            pass
-
-    if stock_data:
-        df = pd.DataFrame(stock_data)
-        st.dataframe(df, use_container_width=True)
+        cols = st.columns(min(3, len(st.session_state.watchlist)))
+        for idx, symbol in enumerate(st.session_state.watchlist[:3]):
+            with cols[idx % 3]:
+                try:
+                    ticker = yf.Ticker(symbol)
+                    info = ticker.info
+                    price = info.get('currentPrice', 'N/A')
+                    st.metric(symbol, f"${price}" if isinstance(price, (int, float)) else "N/A")
+                    time.sleep(0.3)  # Add delay to avoid rate limiting
+                except:
+                    st.metric(symbol, "N/A")
 
 
 # ==================== STOCK ANALYSIS PAGE ====================
@@ -117,76 +123,82 @@ elif page == "Stock Analysis":
     if 'analyze_symbol' in st.session_state:
         symbol = st.session_state.analyze_symbol
 
-        with st.spinner(f"Analyzing {symbol}..."):
-            # Get recommendation
-            rec = get_recommendation(symbol)
+        with st.spinner(f"Analyzing {symbol}... (Please wait, fetching data from Yahoo Finance)"):
+            try:
+                # Get recommendation
+                rec = get_recommendation(symbol)
 
-            if 'error' in rec:
-                st.error(f"❌ Error: {rec['error']}")
-            else:
-                # Halal screening
-                halal = screen_stock_halal(symbol)
+                if 'error' in rec:
+                    st.error(f"❌ Error: {rec['error']}")
+                    st.info("💡 Tip: Yahoo Finance may be rate-limiting requests. Try again in a few moments.")
+                else:
+                    # Halal screening
+                    time.sleep(0.5)  # Add delay to avoid rate limiting
+                    halal = screen_stock_halal(symbol)
 
-                # Recommendation card
-                st.subheader(f"📌 {symbol} - {halal['company_name']}")
+                    # Recommendation card
+                    st.subheader(f"📌 {symbol} - {halal['company_name']}")
 
-                col1, col2, col3, col4 = st.columns(4)
+                    col1, col2, col3, col4 = st.columns(4)
 
-                with col1:
-                    st.metric("Recommendation", rec['recommendation'],
-                             f"Score: {rec['combined_score']:.1f}/100")
-                with col2:
-                    st.metric("Confidence", f"{rec['confidence']:.1f}%")
-                with col3:
-                    st.metric("Halal Score", f"{halal['compliance_score']:.0f}%",
-                             "✅ Compliant" if halal['is_halal'] else "❌ Review needed")
-                with col4:
-                    if st.button("⭐ Add to Watchlist", key=f"add_{symbol}"):
-                        add_to_watchlist(symbol)
+                    with col1:
+                        st.metric("Recommendation", rec['recommendation'],
+                                 f"Score: {rec['combined_score']:.1f}/100")
+                    with col2:
+                        st.metric("Confidence", f"{rec['confidence']:.1f}%")
+                    with col3:
+                        st.metric("Halal Score", f"{halal['compliance_score']:.0f}%",
+                                 "✅ Compliant" if halal['is_halal'] else "❌ Review needed")
+                    with col4:
+                        if st.button("⭐ Add to Watchlist", key=f"add_{symbol}"):
+                            add_to_watchlist(symbol)
 
-                st.markdown("---")
+                    st.markdown("---")
 
-                # Analysis breakdown
-                col1, col2 = st.columns(2)
+                    # Analysis breakdown
+                    col1, col2 = st.columns(2)
 
-                with col1:
-                    st.subheader("📊 Technical Analysis")
-                    tech = rec['technical_analysis']
-                    st.write(f"**Current Price:** ${tech['current_price']:.2f}")
-                    st.write(f"**Change:** {tech['price_change_pct']:+.2f}%")
-                    st.write(f"**Trend:** {tech['trend']}")
-                    st.write(f"**RSI (14):** {tech['rsi']:.2f}" if tech.get('rsi') else "RSI: N/A")
-                    st.write(f"**Volume Trend:** {tech['volume']['trend']}")
-                    st.write(f"**Technical Score:** {rec['technical_score']:.0f}/100")
+                    with col1:
+                        st.subheader("📊 Technical Analysis")
+                        tech = rec['technical_analysis']
+                        st.write(f"**Current Price:** ${tech['current_price']:.2f}")
+                        st.write(f"**Change:** {tech['price_change_pct']:+.2f}%")
+                        st.write(f"**Trend:** {tech['trend']}")
+                        st.write(f"**RSI (14):** {tech['rsi']:.2f}" if tech.get('rsi') else "RSI: N/A")
+                        st.write(f"**Volume Trend:** {tech['volume']['trend']}")
+                        st.write(f"**Technical Score:** {rec['technical_score']:.0f}/100")
 
-                with col2:
-                    st.subheader("💼 Fundamental Analysis")
-                    fund = rec['fundamental_analysis']
-                    st.write(f"**P/E Ratio:** {fund['pe_interpretation']}")
-                    st.write(f"**Debt-to-Equity:** {fund['de_interpretation']}")
-                    st.write(f"**ROE:** {fund['roe_interpretation']}")
-                    st.write(f"**Profit Margin:** {fund['pm_interpretation']}")
-                    st.write(f"**Fundamental Score:** {rec['fundamental_score']:.0f}/100")
+                    with col2:
+                        st.subheader("💼 Fundamental Analysis")
+                        fund = rec['fundamental_analysis']
+                        st.write(f"**P/E Ratio:** {fund['pe_interpretation']}")
+                        st.write(f"**Debt-to-Equity:** {fund['de_interpretation']}")
+                        st.write(f"**ROE:** {fund['roe_interpretation']}")
+                        st.write(f"**Profit Margin:** {fund['pm_interpretation']}")
+                        st.write(f"**Fundamental Score:** {rec['fundamental_score']:.0f}/100")
 
-                st.markdown("---")
+                    st.markdown("---")
 
-                # Halal screening details
-                st.subheader("✅ Halal Compliance")
-                col1, col2, col3 = st.columns(3)
-                with col1:
-                    st.write(f"**Sector:** {halal['sector']}")
-                with col2:
-                    st.write(f"**Compliance Score:** {halal['compliance_score']:.0f}%")
-                with col3:
-                    st.write(f"**D/E Ratio:** {halal['de_status']}")
+                    # Halal screening details
+                    st.subheader("✅ Halal Compliance")
+                    col1, col2, col3 = st.columns(3)
+                    with col1:
+                        st.write(f"**Sector:** {halal['sector']}")
+                    with col2:
+                        st.write(f"**Compliance Score:** {halal['compliance_score']:.0f}%")
+                    with col3:
+                        st.write(f"**D/E Ratio:** {halal['de_status']}")
 
-                if halal['issues']:
-                    st.warning("**⚠️ Issues Found:**")
-                    for issue in halal['issues']:
-                        st.write(f"• {issue}")
+                    if halal['issues']:
+                        st.warning("**⚠️ Issues Found:**")
+                        for issue in halal['issues']:
+                            st.write(f"• {issue}")
 
-                st.markdown("---")
-                st.info(f"**Recommendation:** {rec['explanation']}")
+                    st.markdown("---")
+                    st.info(f"**Recommendation:** {rec['explanation']}")
+            except Exception as e:
+                st.error(f"❌ An error occurred: {str(e)}")
+                st.info("💡 This often happens due to Yahoo Finance rate limiting. Please try again in a moment.")
 
 
 # ==================== HALAL SCREENING PAGE ====================
