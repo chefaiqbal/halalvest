@@ -13,3 +13,5 @@ toolbarMode = "viewer"
 maxUploadSize = 200
 enableCORS = false
 headless = true
+# Force redeploy
+deploymentCacheVersion = 2
