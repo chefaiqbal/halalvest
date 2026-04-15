@@ -11,15 +11,28 @@ import time
 
 
 def get_historical_data(symbol: str, period: str = '1y') -> pd.DataFrame:
-    """Fetch historical stock data"""
-    try:
-        time.sleep(0.2)  # Add delay to avoid rate limiting
-        df = yf.download(symbol, period=period, progress=False)
-        if len(df) == 0:
-            return pd.DataFrame()
-        return df
-    except Exception as e:
-        return pd.DataFrame()
+    """Fetch historical stock data with retry logic"""
+    max_retries = 2
+    retry_delay = 1
+
+    for attempt in range(max_retries):
+        try:
+            time.sleep(0.3)  # Delay before each request
+            df = yf.download(symbol, period=period, progress=False)
+            if len(df) == 0:
+                if attempt < max_retries - 1:
+                    time.sleep(retry_delay)
+                    continue
+                return pd.DataFrame()
+            return df
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2  # Exponential backoff
+            else:
+                return pd.DataFrame()
+
+    return pd.DataFrame()
 
 
 def calculate_sma(df: pd.DataFrame, columns: list = [20, 50, 200]) -> Dict:

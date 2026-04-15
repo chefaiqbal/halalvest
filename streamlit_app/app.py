@@ -115,10 +115,14 @@ elif page == "Stock Analysis":
 
     col1, col2 = st.columns([3, 1])
     with col1:
-        stock_symbol = st.text_input("Enter Stock Symbol (e.g., AAPL, MSFT, JNJ):", "MSFT").upper()
+        stock_symbol = st.text_input("Enter Stock Symbol (e.g., AAPL, JNJ, NVDA):", "").upper()
     with col2:
-        if st.button("🔎 Analyze"):
-            st.session_state.analyze_symbol = stock_symbol
+        analyze_button = st.button("🔎 Analyze")
+
+    if analyze_button and stock_symbol:
+        st.session_state.analyze_symbol = stock_symbol
+    elif not stock_symbol and 'analyze_symbol' in st.session_state:
+        del st.session_state.analyze_symbol
 
     if 'analyze_symbol' in st.session_state:
         symbol = st.session_state.analyze_symbol

@@ -62,19 +62,29 @@ HALAL_STOCKS = [s for s in HALAL_STOCKS if s not in CONTROVERSIAL_IN_HALAL]
 
 
 def get_company_info(symbol: str) -> Dict:
-    """Get company information for halal screening"""
-    try:
-        time.sleep(0.2)  # Add delay to avoid rate limiting
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
-        return {
-            'sector': info.get('sector', 'Unknown'),
-            'industry': info.get('industry', 'Unknown'),
-            'company_name': info.get('longName', symbol),
-            'market_cap': info.get('marketCap', 0),
-        }
-    except Exception as e:
-        return {}
+    """Get company information for halal screening with retry logic"""
+    max_retries = 2
+    retry_delay = 0.5
+
+    for attempt in range(max_retries):
+        try:
+            time.sleep(0.3)  # Delay before each request
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+            return {
+                'sector': info.get('sector', 'Unknown'),
+                'industry': info.get('industry', 'Unknown'),
+                'company_name': info.get('longName', symbol),
+                'market_cap': info.get('marketCap', 0),
+            }
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                return {}
+
+    return {}
 
 
 def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
@@ -82,26 +92,36 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
     Check debt-to-equity ratio - Islamic finance principle
     Generally, D/E should be < 1.5 for halal compliance
     """
-    try:
-        time.sleep(0.2)  # Add delay to avoid rate limiting
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
+    max_retries = 2
+    retry_delay = 0.5
 
-        debt_to_equity = info.get('debtToEquity', None)
+    for attempt in range(max_retries):
+        try:
+            time.sleep(0.3)  # Delay before each request
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
 
-        if debt_to_equity is None:
-            return None, 'N/A'
+            debt_to_equity = info.get('debtToEquity', None)
 
-        if debt_to_equity < 0.5:
-            return debt_to_equity, '✅ Very Good (Low leverage)'
-        elif debt_to_equity < 1.0:
-            return debt_to_equity, '✅ Good (Moderate leverage)'
-        elif debt_to_equity < 1.5:
-            return debt_to_equity, '⚠️ Acceptable (Higher leverage)'
-        else:
-            return debt_to_equity, '❌ High leverage risk'
-    except Exception as e:
-        return None, 'N/A'
+            if debt_to_equity is None:
+                return None, 'N/A'
+
+            if debt_to_equity < 0.5:
+                return debt_to_equity, '✅ Very Good (Low leverage)'
+            elif debt_to_equity < 1.0:
+                return debt_to_equity, '✅ Good (Moderate leverage)'
+            elif debt_to_equity < 1.5:
+                return debt_to_equity, '⚠️ Acceptable (Higher leverage)'
+            else:
+                return debt_to_equity, '❌ High leverage risk'
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                return None, 'N/A'
+
+    return None, 'N/A'
 
 
 def screen_stock_halal(symbol: str) -> Dict:

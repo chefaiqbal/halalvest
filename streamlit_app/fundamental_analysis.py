@@ -9,36 +9,46 @@ import time
 
 
 def get_fundamental_metrics(symbol: str) -> Dict:
-    """Fetch fundamental metrics for a stock"""
-    try:
-        time.sleep(0.2)  # Add delay to avoid rate limiting
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
+    """Fetch fundamental metrics for a stock with retry logic"""
+    max_retries = 2
+    retry_delay = 0.5
 
-        return {
-            'pe_ratio': info.get('trailingPE'),
-            'forward_pe': info.get('forwardPE'),
-            'peg_ratio': info.get('pegRatio'),
-            'debt_to_equity': info.get('debtToEquity'),
-            'current_ratio': info.get('currentRatio'),
-            'quick_ratio': info.get('quickRatio'),
-            'roe': info.get('returnOnEquity'),  # ROE - Return on Equity
-            'roa': info.get('returnOnAssets'),  # ROA - Return on Assets
-            'profit_margin': info.get('profitMargins'),  # Net profit margin
-            'operating_margin': info.get('operatingMargins'),
-            'gross_margin': info.get('grossMargins'),
-            'earnings_growth': info.get('earningsGrowth'),
-            'revenue_growth': info.get('revenueGrowth'),
-            'dividend_yield': info.get('dividendYield'),
-            'market_cap': info.get('marketCap'),
-            'enterprise_value': info.get('enterpriseValue'),
-            'free_cash_flow': info.get('freeCashflow'),
-            'book_value': info.get('bookValue'),
-            'forward_earnings': info.get('forwardEps'),
-            'trailing_earnings': info.get('trailingEps'),
-        }
-    except Exception as e:
-        return {}
+    for attempt in range(max_retries):
+        try:
+            time.sleep(0.3)  # Delay before each request
+            ticker = yf.Ticker(symbol)
+            info = ticker.info
+
+            return {
+                'pe_ratio': info.get('trailingPE'),
+                'forward_pe': info.get('forwardPE'),
+                'peg_ratio': info.get('pegRatio'),
+                'debt_to_equity': info.get('debtToEquity'),
+                'current_ratio': info.get('currentRatio'),
+                'quick_ratio': info.get('quickRatio'),
+                'roe': info.get('returnOnEquity'),
+                'roa': info.get('returnOnAssets'),
+                'profit_margin': info.get('profitMargins'),
+                'operating_margin': info.get('operatingMargins'),
+                'gross_margin': info.get('grossMargins'),
+                'earnings_growth': info.get('earningsGrowth'),
+                'revenue_growth': info.get('revenueGrowth'),
+                'dividend_yield': info.get('dividendYield'),
+                'market_cap': info.get('marketCap'),
+                'enterprise_value': info.get('enterpriseValue'),
+                'free_cash_flow': info.get('freeCashflow'),
+                'book_value': info.get('bookValue'),
+                'forward_earnings': info.get('forwardEps'),
+                'trailing_earnings': info.get('trailingEps'),
+            }
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(retry_delay)
+                retry_delay *= 2
+            else:
+                return {}
+
+    return {}
 
 
 def evaluate_pe_ratio(pe: float, industry_avg: float = 20) -> Tuple[str, float]:
