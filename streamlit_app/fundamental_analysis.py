@@ -1,61 +1,48 @@
 """
 Fundamental Analysis Service
 Analyzes P/E ratios, debt-to-equity, ROE, profit margins
+Uses Finnhub API for reliable data fetching
 """
 
-import yfinance as yf
+from finnhub_client import get_fundamental_ratios, get_quote, get_company_profile
 from typing import Dict, Tuple
-import time
 
 
 def get_fundamental_metrics(symbol: str) -> Dict:
-    """Fetch fundamental metrics for a stock with retry logic"""
-    max_retries = 3
-    retry_delay = 2  # Start with 2 seconds
+    """Fetch fundamental metrics for a stock from Finnhub"""
+    try:
+        # Get metrics from Finnhub
+        metrics_data = get_fundamental_ratios(symbol)
+        quote_data = get_quote(symbol)
 
-    for attempt in range(max_retries):
-        try:
-            time.sleep(1)  # Longer delay before each request
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
+        if not metrics_data or not quote_data:
+            return {}
 
-            if not info:  # Check if info is empty
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                return {}
-
-            return {
-                'pe_ratio': info.get('trailingPE'),
-                'forward_pe': info.get('forwardPE'),
-                'peg_ratio': info.get('pegRatio'),
-                'debt_to_equity': info.get('debtToEquity'),
-                'current_ratio': info.get('currentRatio'),
-                'quick_ratio': info.get('quickRatio'),
-                'roe': info.get('returnOnEquity'),
-                'roa': info.get('returnOnAssets'),
-                'profit_margin': info.get('profitMargins'),
-                'operating_margin': info.get('operatingMargins'),
-                'gross_margin': info.get('grossMargins'),
-                'earnings_growth': info.get('earningsGrowth'),
-                'revenue_growth': info.get('revenueGrowth'),
-                'dividend_yield': info.get('dividendYield'),
-                'market_cap': info.get('marketCap'),
-                'enterprise_value': info.get('enterpriseValue'),
-                'free_cash_flow': info.get('freeCashflow'),
-                'book_value': info.get('bookValue'),
-                'forward_earnings': info.get('forwardEps'),
-                'trailing_earnings': info.get('trailingEps'),
-            }
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                return {}
-
-    return {}
+        # Extract available metrics
+        return {
+            'pe_ratio': metrics_data.get('metric', {}).get('peTrailingTTM'),
+            'forward_pe': metrics_data.get('metric', {}).get('peForward'),
+            'peg_ratio': metrics_data.get('metric', {}).get('pegratio'),
+            'debt_to_equity': metrics_data.get('metric', {}).get('debtToEquity'),
+            'current_ratio': metrics_data.get('metric', {}).get('currentRatio'),
+            'quick_ratio': metrics_data.get('metric', {}).get('quickRatio'),
+            'roe': metrics_data.get('metric', {}).get('roe'),
+            'roa': metrics_data.get('metric', {}).get('roa'),
+            'profit_margin': metrics_data.get('metric', {}).get('grossMargin'),
+            'operating_margin': metrics_data.get('metric', {}).get('operatingMarginTTM'),
+            'gross_margin': metrics_data.get('metric', {}).get('grossMargin'),
+            'earnings_growth': metrics_data.get('metric', {}).get('estimatedEarningsGrowth'),
+            'revenue_growth': metrics_data.get('metric', {}).get('revenuePerShare'),
+            'dividend_yield': quote_data.get('d'),
+            'market_cap': quote_data.get('marketCap'),
+            'enterprise_value': metrics_data.get('metric', {}).get('enterpriseToRevenue'),
+            'free_cash_flow': metrics_data.get('metric', {}).get('fcfMargin'),
+            'book_value': metrics_data.get('metric', {}).get('bookValue'),
+            'forward_earnings': quote_data.get('eps'),
+            'trailing_earnings': metrics_data.get('metric', {}).get('trailingEpsTTM'),
+        }
+    except Exception as e:
+        return {}
 
 
 def evaluate_pe_ratio(pe: float, industry_avg: float = 20) -> Tuple[str, float]:
@@ -192,4 +179,3 @@ def fundamental_signal_score(analysis: Dict) -> Tuple[float, str]:
         interpretation = '📉 Weak Fundamentals'
 
     return score, interpretation
-

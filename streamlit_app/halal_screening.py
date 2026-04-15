@@ -1,12 +1,11 @@
 """
 Halal Stock Screening Service
 Screens stocks according to Islamic finance principles
+Uses Finnhub API for reliable data fetching
 """
 
-import yfinance as yf
-import pandas as pd
+from finnhub_client import get_company_profile, get_fundamental_ratios
 from typing import List, Dict, Tuple
-import time
 
 # List of prohibited sectors (haram)
 PROHIBITED_SECTORS = {
@@ -43,7 +42,7 @@ HALAL_STOCKS = [
     'XOM', 'CVX', 'COP', 'SLB', 'MPC', 'PSX', 'VLO', 'FANG', 'EOG', 'MUR',
 
     # Communications
-    'MSFT', 'GOOG', 'META', 'GOOGL', 'TMUS', 'VZ', 'T', 'CMCSA', 'CHTR', 'DIS',
+    'MSFT', 'GOOG', 'TMUS', 'VZ', 'T', 'CMCSA', 'CHTR',
 
     # Real Estate (REITs - generally halal if no interest-based)
     'PLD', 'CCI', 'DLR', 'EQIX', 'SPG', 'O', 'VICI', 'STAG', 'STOR', 'PSA',
@@ -56,43 +55,25 @@ HALAL_STOCKS = [
 ]
 
 # Filter to remove some controversial ones
-# (You might want to add more Islamic finance-specific checks)
-CONTROVERSIAL_IN_HALAL = {'DIS', 'META'}  # Entertainment, social media concerns
+CONTROVERSIAL_IN_HALAL = {'DIS', 'META', 'GOOGL'}  # Entertainment, social media concerns
 HALAL_STOCKS = [s for s in HALAL_STOCKS if s not in CONTROVERSIAL_IN_HALAL]
 
 
 def get_company_info(symbol: str) -> Dict:
-    """Get company information for halal screening with retry logic"""
-    max_retries = 3
-    retry_delay = 2
+    """Get company information for halal screening from Finnhub"""
+    try:
+        profile = get_company_profile(symbol)
+        if not profile:
+            return {}
 
-    for attempt in range(max_retries):
-        try:
-            time.sleep(1)  # Longer delay before each request
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
-
-            if not info:  # Check if info is empty
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                return {}
-
-            return {
-                'sector': info.get('sector', 'Unknown'),
-                'industry': info.get('industry', 'Unknown'),
-                'company_name': info.get('longName', symbol),
-                'market_cap': info.get('marketCap', 0),
-            }
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                return {}
-
-    return {}
+        return {
+            'sector': profile.get('finnhubIndustry', 'Unknown'),
+            'industry': profile.get('finnhubIndustry', 'Unknown'),
+            'company_name': profile.get('name', symbol),
+            'market_cap': profile.get('marketCapitalization', 0),
+        }
+    except Exception as e:
+        return {}
 
 
 def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
@@ -100,40 +81,26 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
     Check debt-to-equity ratio - Islamic finance principle
     Generally, D/E should be < 1.5 for halal compliance
     """
-    max_retries = 3
-    retry_delay = 2
+    try:
+        metrics_data = get_fundamental_ratios(symbol)
+        if not metrics_data:
+            return None, 'N/A'
 
-    for attempt in range(max_retries):
-        try:
-            time.sleep(1)  # Longer delay before each request
-            ticker = yf.Ticker(symbol)
-            info = ticker.info
+        debt_to_equity = metrics_data.get('metric', {}).get('debtToEquity')
 
-            debt_to_equity = info.get('debtToEquity', None)
+        if debt_to_equity is None:
+            return None, 'N/A'
 
-            if debt_to_equity is None:
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                return None, 'N/A'
-
-            if debt_to_equity < 0.5:
-                return debt_to_equity, '✅ Very Good (Low leverage)'
-            elif debt_to_equity < 1.0:
-                return debt_to_equity, '✅ Good (Moderate leverage)'
-            elif debt_to_equity < 1.5:
-                return debt_to_equity, '⚠️ Acceptable (Higher leverage)'
-            else:
-                return debt_to_equity, '❌ High leverage risk'
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2
-            else:
-                return None, 'N/A'
-
-    return None, 'N/A'
+        if debt_to_equity < 0.5:
+            return debt_to_equity, '✅ Very Good (Low leverage)'
+        elif debt_to_equity < 1.0:
+            return debt_to_equity, '✅ Good (Moderate leverage)'
+        elif debt_to_equity < 1.5:
+            return debt_to_equity, '⚠️ Acceptable (Higher leverage)'
+        else:
+            return debt_to_equity, '❌ High leverage risk'
+    except Exception as e:
+        return None, 'N/A'
 
 
 def screen_stock_halal(symbol: str) -> Dict:
@@ -191,4 +158,3 @@ def screen_stock_halal(symbol: str) -> Dict:
 def get_halal_stocks_list() -> List[str]:
     """Get pre-screened halal stocks"""
     return HALAL_STOCKS
-

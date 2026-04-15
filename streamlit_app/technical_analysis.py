@@ -1,104 +1,45 @@
 """
 Technical Analysis Service
 Implements technical indicators: SMA, RSI, MACD, Volume trends
+Uses Finnhub API for reliable data fetching
 """
 
 import pandas as pd
 import numpy as np
-import yfinance as yf
+from finnhub_client import (
+    get_historical_data as fetch_historical_data,
+    calculate_sma as calc_sma,
+    calculate_rsi as calc_rsi,
+    calculate_macd as calc_macd,
+    calculate_volume_trend as calc_volume_trend
+)
 from typing import Dict, Tuple
-import time
 
 
 def get_historical_data(symbol: str, period: str = '1y') -> pd.DataFrame:
-    """Fetch historical stock data with retry logic"""
-    max_retries = 3
-    retry_delay = 3  # Start with 3 seconds
-
-    for attempt in range(max_retries):
-        try:
-            time.sleep(1)  # Longer delay before each request
-            df = yf.download(symbol, period=period, progress=False)
-            if len(df) == 0:
-                if attempt < max_retries - 1:
-                    time.sleep(retry_delay)
-                    retry_delay *= 2
-                    continue
-                return pd.DataFrame()
-            return df
-        except Exception as e:
-            if attempt < max_retries - 1:
-                time.sleep(retry_delay)
-                retry_delay *= 2  # Exponential backoff
-            else:
-                return pd.DataFrame()
-
-    return pd.DataFrame()
+    """Fetch historical stock data from Finnhub"""
+    df = fetch_historical_data(symbol)
+    return df if df is not None else pd.DataFrame()
 
 
 def calculate_sma(df: pd.DataFrame, columns: list = [20, 50, 200]) -> Dict:
     """Calculate Simple Moving Averages"""
-    sma_dict = {}
-    for col in columns:
-        df[f'SMA_{col}'] = df['Close'].rolling(window=col).mean()
-        sma_dict[col] = df[f'SMA_{col}'].iloc[-1]
-    return sma_dict
+    return calc_sma(df, columns)
 
 
 def calculate_rsi(df: pd.DataFrame, period: int = 14) -> float:
     """Calculate Relative Strength Index"""
-    if len(df) < period:
-        return None
-
-    delta = df['Close'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(window=period).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(window=period).mean()
-
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    return rsi.iloc[-1]
+    return calc_rsi(df, period)
 
 
 def calculate_macd(df: pd.DataFrame) -> Dict:
     """Calculate MACD (Moving Average Convergence Divergence)"""
-    exp1 = df['Close'].ewm(span=12, adjust=False).mean()
-    exp2 = df['Close'].ewm(span=26, adjust=False).mean()
-
-    macd = exp1 - exp2
-    signal = macd.ewm(span=9, adjust=False).mean()
-    histogram = macd - signal
-
-    return {
-        'macd': macd.iloc[-1],
-        'signal': signal.iloc[-1],
-        'histogram': histogram.iloc[-1],
-    }
+    return calc_macd(df)
 
 
 def calculate_volume_trend(df: pd.DataFrame, period: int = 20) -> Dict:
     """Analyze volume trends"""
-    if len(df) < period:
-        return {'trend': 'N/A', 'avg_volume': 0}
-
-    current_volume = df['Volume'].iloc[-1]
-    avg_volume = df['Volume'].tail(period).mean()
-    volume_ratio = current_volume / avg_volume if avg_volume > 0 else 1
-
-    if volume_ratio > 1.3:
-        trend = 'High (Bullish signal)'
-    elif volume_ratio > 1.0:
-        trend = 'Above Average'
-    elif volume_ratio < 0.7:
-        trend = 'Low (Potential weakness)'
-    else:
-        trend = 'Average'
-
-    return {
-        'trend': trend,
-        'current_volume': current_volume,
-        'avg_volume': avg_volume,
-        'ratio': volume_ratio
-    }
+    return calc_volume_trend(df, period)
 
 
 def technical_analysis(symbol: str) -> Dict:
@@ -188,4 +129,3 @@ def technical_signal_score(analysis: Dict) -> Tuple[float, str]:
         interpretation = '📉 Bearish'
 
     return score, interpretation
-

@@ -17,7 +17,7 @@ A free, open-source stock tracking bot for Islamic investing. Track halal-screen
 - Combined confidence scoring
 
 ✅ **Real-Time Data** - Live stock prices and analysis
-- Yahoo Finance integration (free, no API key needed)
+- Finnhub integration (free tier: 60 API calls/min)
 - 1 year of historical data
 - Instant recommendations
 
@@ -35,7 +35,7 @@ A free, open-source stock tracking bot for Islamic investing. Track halal-screen
 
 ### Streamlit Version (Recommended - Easiest to Deploy) ⭐
 - **Framework**: Streamlit (Python)
-- **Data**: Yahoo Finance (yfinance)
+- **Data**: Finnhub API (free, requires free API key)
 - **Technical Analysis**: TA Library
 - **Hosting**: Streamlit Cloud (free)
 - **Location**: `/streamlit_app/`
@@ -249,7 +249,7 @@ A: Absolutely! It works perfectly in iOS Safari. You can even add it to home scr
 A: They're based on proven technical and fundamental indicators, but they're a guide, not investment advice. Always do your own research.
 
 **Q: Do I need an API key?**
-A: No! Yahoo Finance data is free and doesn't require any API keys.
+A: Yes! You need a free Finnhub API key (sign up at https://finnhub.io/register?plan=free). It's free forever with 60 API calls per minute, which is plenty. Store it in `.streamlit/secrets.toml` as `FINNHUB_API_KEY`.
 
 **Q: Can I customize the halal stocks list?**
 A: Yes! Edit the `HALAL_STOCKS` list in `streamlit_app/halal_screening.py` to add/remove stocks.

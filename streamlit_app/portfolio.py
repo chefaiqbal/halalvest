@@ -1,9 +1,10 @@
 """
 Portfolio tracking and analysis
+Uses Finnhub API for reliable data fetching
 """
 
-import yfinance as yf
 import pandas as pd
+from finnhub_client import get_quote, get_historical_data
 from typing import Dict, List
 import time
 
@@ -11,16 +12,19 @@ import time
 def get_stock_performance(symbol: str, days: int = 30) -> Dict:
     """Get stock performance over N days"""
     try:
-        time.sleep(0.3)
-        ticker = yf.Ticker(symbol)
-        info = ticker.info
+        time.sleep(1.1)  # Rate limiting
 
-        current_price = info.get('currentPrice')
+        # Get current price
+        quote = get_quote(symbol)
+        if not quote:
+            return None
+
+        current_price = quote.get('c')
         if not current_price:
             return None
 
         # Get historical data
-        hist = yf.download(symbol, period=f'{days}d', progress=False)
+        hist = get_historical_data(symbol)
 
         if hist.empty or len(hist) < 2:
             return None
@@ -43,7 +47,7 @@ def get_stock_performance(symbol: str, days: int = 30) -> Dict:
             'high': high,
             'low': low,
             'period_days': days,
-            'company_name': info.get('longName', symbol)
+            'company_name': symbol
         }
     except Exception as e:
         return None
@@ -65,7 +69,7 @@ def get_portfolio_summary(watchlist: List[str], period_days: int = 30) -> pd.Dat
                 'Low': f"${perf['low']:.2f}",
                 'Change_Raw': perf['change_pct']  # For sorting
             })
-        time.sleep(0.2)  # Avoid rate limiting
+        time.sleep(0.3)  # Avoid rate limiting
 
     if data:
         df = pd.DataFrame(data)
@@ -97,7 +101,7 @@ def calculate_portfolio_gains_if_invested(watchlist: List[str], invested_per_sto
                 'gain': gain,
                 'gain_pct': gain_pct
             })
-        time.sleep(0.2)
+        time.sleep(0.3)
 
     total_gain = total_current - total_invested
     total_gain_pct = (total_gain / total_invested * 100) if total_invested > 0 else 0

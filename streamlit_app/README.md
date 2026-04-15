@@ -4,6 +4,13 @@ A free, open-source stock tracking bot for Islamic investing. Track halal-screen
 
 ## 🚀 Quick Start - Deploy in 5 Minutes
 
+### Prerequisites: Get Your Free Finnhub API Key (2 minutes)
+
+1. **Go to [Finnhub.io](https://finnhub.io/register?plan=free)**
+2. **Sign up for free account** (no credit card needed)
+3. **Copy your API key** from the dashboard
+4. **You're done!** The free tier gives you 60 API calls/minute (plenty for this app)
+
 ### Option 1: Deploy to Streamlit Cloud (Easiest & Free)
 
 1. **Push this folder to GitHub**
@@ -20,7 +27,13 @@ A free, open-source stock tracking bot for Islamic investing. Track halal-screen
    - File path: `streamlit_app/app.py`
    - Click "Deploy"
 
-3. **That's it!** Your app is now live and your friend can access it from iOS Safari
+3. **Add your Finnhub API Key to Streamlit Secrets**
+   - In Streamlit Cloud dashboard, go to app settings
+   - Click "Secrets"
+   - Add: `FINNHUB_API_KEY = "your_api_key_here"`
+   - Save and redeploy
+
+4. **That's it!** Your app is now live and your friend can access it from iOS Safari
 
 ### Option 2: Run Locally
 
@@ -29,6 +42,9 @@ cd streamlit_app
 
 # Install dependencies
 pip install -r requirements.txt
+
+# Create or edit .streamlit/secrets.toml and add:
+# FINNHUB_API_KEY = "your_finnhub_api_key_here"
 
 # Run the app
 streamlit run app.py
@@ -53,7 +69,7 @@ Visit `http://localhost:8501` in your browser.
 - Buy/Sell/Hold signals with reasoning
 
 ✅ **Real-Time Data**
-- Live stock prices (Yahoo Finance)
+- Live stock prices (Finnhub API)
 - 1 year of historical data
 - Instant analysis and recommendations
 
@@ -64,8 +80,8 @@ Visit `http://localhost:8501` in your browser.
 
 ✅ **Completely Free**
 - Free hosting on Streamlit Cloud
-- Free stock data from Yahoo Finance
-- No API keys needed
+- Free stock data from Finnhub (60 calls/min, no credit card needed)
+- No hidden costs
 
 ---
 
@@ -155,7 +171,7 @@ Combined Score Interpretation:
 ## 🛠️ Tech Stack
 
 - **Framework**: Streamlit (Python)
-- **Data**: Yahoo Finance (yfinance)
+- **Data**: Finnhub API (free, requires free API key)
 - **Technical Analysis**: TA Library
 - **Data Processing**: Pandas, NumPy
 - **Visualization**: Plotly
@@ -248,7 +264,7 @@ A: It's a web app you can access from any device, including iOS Safari. It's not
 A: Yes! Just open it in Safari and it works perfectly. You can even add it to home screen for app-like experience.
 
 **Q: Does it cost anything?**
-A: Completely free! Streamlit Cloud hosting is free for public apps, and Yahoo Finance data is free.
+A: Completely free! Streamlit Cloud hosting is free for public apps, and Finnhub's free tier provides 60 API calls/minute (more than enough). No credit card needed.
 
 **Q: How accurate are the recommendations?**
 A: They're based on proven technical and fundamental indicators, but they should be used as a guide, not investment advice. Always do your own research.
@@ -267,7 +283,7 @@ A: Real-time during market hours. Historical data is updated daily.
 - ✅ Local Testing: Ready
 - ⏳ Streamlit Cloud: Ready to deploy (see Quick Start)
 - ✅ Mobile: iOS Safari compatible
-- ✅ Data: Yahoo Finance API working
+- ✅ Data: Finnhub API integration (reliable, 60 calls/min free)
 
 ---
 
