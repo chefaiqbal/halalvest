@@ -3,6 +3,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from halal_screening import get_halal_stocks_list, screen_stock_halal
 from recommendation_engine import get_recommendation
+from charting import create_price_chart, create_comparison_chart, create_volume_chart
+from portfolio import get_portfolio_summary, calculate_portfolio_gains_if_invested
 import yfinance as yf
 import time
 
@@ -61,7 +63,7 @@ Track halal-screened stocks, get AI-powered buy/sell/hold recommendations, and m
 # Sidebar navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Choose a page:",
-    ["Dashboard", "Stock Analysis", "Halal Screening", "My Watchlist", "About"])
+    ["Dashboard", "Stock Analysis", "Charts & Comparison", "Portfolio Performance", "Halal Screening", "My Watchlist", "About"])
 
 # ==================== DASHBOARD PAGE ====================
 if page == "Dashboard":
@@ -236,7 +238,116 @@ elif page == "Halal Screening":
             st.success("No compliance issues found! ✅")
 
 
-# ==================== WATCHLIST PAGE ====================
+# ==================== CHARTS & COMPARISON PAGE ====================
+elif page == "Charts & Comparison":
+    st.header("📈 Charts & Comparison")
+
+    tab1, tab2, tab3 = st.tabs(["Price Charts", "Stock Comparison", "Volume Analysis"])
+
+    with tab1:
+        st.subheader("Stock Price Chart with Technical Indicators")
+        symbol = st.text_input("Enter stock symbol:", "JNJ")
+
+        if symbol:
+            with st.spinner(f"Loading chart for {symbol}..."):
+                chart = create_price_chart(symbol.upper())
+                if chart:
+                    st.plotly_chart(chart, use_container_width=True)
+                else:
+                    st.error(f"Could not load chart for {symbol}")
+
+    with tab2:
+        st.subheader("Compare Multiple Stocks")
+        symbols_input = st.text_input("Enter stock symbols separated by commas:", "AAPL,MSFT,JNJ,NVDA")
+
+        if symbols_input:
+            symbols = [s.strip().upper() for s in symbols_input.split(',')]
+
+            with st.spinner(f"Comparing {len(symbols)} stocks..."):
+                chart = create_comparison_chart(symbols)
+                if chart:
+                    st.plotly_chart(chart, use_container_width=True)
+                    st.info("📊 Shows normalized performance - all stocks start at 0% for easy comparison")
+                else:
+                    st.error("Could not create comparison chart")
+
+    with tab3:
+        st.subheader("Volume Analysis")
+        symbol = st.text_input("Enter stock symbol for volume:", "JNJ", key="volume_symbol")
+
+        if symbol:
+            with st.spinner(f"Loading volume for {symbol}..."):
+                chart = create_volume_chart(symbol.upper())
+                if chart:
+                    st.plotly_chart(chart, use_container_width=True)
+                else:
+                    st.error(f"Could not load volume data for {symbol}")
+
+
+# ==================== PORTFOLIO PERFORMANCE PAGE ====================
+elif page == "Portfolio Performance":
+    st.header("💼 Portfolio Performance")
+
+    if len(st.session_state.watchlist) == 0:
+        st.warning("⚠️ Your watchlist is empty! Add stocks from Stock Analysis page first.")
+    else:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            period = st.selectbox("Performance Period:", [7, 14, 30, 90])
+
+        with col2:
+            st.write("")  # Spacing
+
+        st.markdown("---")
+
+        # Watchlist performance table
+        st.subheader("📊 Watchlist Performance")
+        with st.spinner("Loading portfolio data..."):
+            perf_df = get_portfolio_summary(st.session_state.watchlist, period)
+
+            if not perf_df.empty:
+                st.dataframe(perf_df, use_container_width=True)
+            else:
+                st.error("Could not fetch portfolio data. Try again in a moment.")
+
+        st.markdown("---")
+
+        # Hypothetical investment scenario
+        st.subheader("💰 Hypothetical Investment Scenario")
+        invested_amount = st.slider("If you invested per stock:", 100, 10000, 1000, 100)
+
+        with st.spinner("Calculating portfolio gains..."):
+            port_gains = calculate_portfolio_gains_if_invested(st.session_state.watchlist, invested_amount)
+
+            col1, col2, col3 = st.columns(3)
+            with col1:
+                st.metric("Total Invested", f"${port_gains['total_invested']:,.2f}")
+            with col2:
+                st.metric("Current Value", f"${port_gains['total_current']:,.2f}")
+            with col3:
+                color = "green" if port_gains['total_gain'] > 0 else "red"
+                st.metric("Total Gain/Loss", f"${port_gains['total_gain']:,.2f}",
+                         f"{port_gains['total_gain_pct']:+.2f}%")
+
+            st.markdown("---")
+            st.write("**Per Stock Breakdown:**")
+
+            if port_gains['stocks']:
+                gains_df = pd.DataFrame([
+                    {
+                        'Stock': g['symbol'],
+                        'Invested': f"${g['invested']:,.0f}",
+                        'Current': f"${g['current_value']:,.2f}",
+                        'Gain/Loss': f"${g['gain']:,.2f}",
+                        'Return': f"{g['gain_pct']:+.2f}%"
+                    }
+                    for g in port_gains['stocks']
+                ])
+                st.dataframe(gains_df, use_container_width=True)
+
+
+
 elif page == "My Watchlist":
     st.header("⭐ My Watchlist")
 
