@@ -63,12 +63,12 @@ HALAL_STOCKS = [s for s in HALAL_STOCKS if s not in CONTROVERSIAL_IN_HALAL]
 
 def get_company_info(symbol: str) -> Dict:
     """Get company information for halal screening with retry logic"""
-    max_retries = 2
-    retry_delay = 0.5
+    max_retries = 3
+    retry_delay = 1
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.3)  # Delay before each request
+            time.sleep(0.5)  # Delay before each request
             ticker = yf.Ticker(symbol)
             info = ticker.info
             return {
@@ -92,12 +92,12 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
     Check debt-to-equity ratio - Islamic finance principle
     Generally, D/E should be < 1.5 for halal compliance
     """
-    max_retries = 2
-    retry_delay = 0.5
+    max_retries = 3
+    retry_delay = 1
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.3)  # Delay before each request
+            time.sleep(0.5)  # Delay before each request
             ticker = yf.Ticker(symbol)
             info = ticker.info
 

@@ -10,12 +10,12 @@ import time
 
 def get_fundamental_metrics(symbol: str) -> Dict:
     """Fetch fundamental metrics for a stock with retry logic"""
-    max_retries = 2
-    retry_delay = 0.5
+    max_retries = 3
+    retry_delay = 1
 
     for attempt in range(max_retries):
         try:
-            time.sleep(0.3)  # Delay before each request
+            time.sleep(0.5)  # Delay before each request
             ticker = yf.Ticker(symbol)
             info = ticker.info
 
