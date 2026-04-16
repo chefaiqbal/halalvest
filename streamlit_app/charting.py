@@ -5,6 +5,7 @@ Charting utilities for technical analysis visualization
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import pandas as pd
+import ta
 from technical_analysis import get_historical_data, calculate_sma, calculate_rsi
 
 
@@ -43,7 +44,7 @@ def create_price_chart(symbol: str) -> go.Figure:
         # Add SMA lines
         fig.add_trace(
             go.Scatter(
-                x=df.index, y=df['SMA_20'],
+                x=df.index, y=df['Close'].rolling(window=20).mean(),
                 mode='lines',
                 name='SMA 20',
                 line=dict(color='orange', width=1, dash='dash')
@@ -53,7 +54,7 @@ def create_price_chart(symbol: str) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=df.index, y=df['SMA_50'],
+                x=df.index, y=df['Close'].rolling(window=50).mean(),
                 mode='lines',
                 name='SMA 50',
                 line=dict(color='red', width=1, dash='dash')
@@ -63,7 +64,7 @@ def create_price_chart(symbol: str) -> go.Figure:
 
         fig.add_trace(
             go.Scatter(
-                x=df.index, y=df['SMA_200'],
+                x=df.index, y=df['Close'].rolling(window=200).mean(),
                 mode='lines',
                 name='SMA 200',
                 line=dict(color='green', width=1, dash='dash')
@@ -74,7 +75,7 @@ def create_price_chart(symbol: str) -> go.Figure:
         # Add RSI
         fig.add_trace(
             go.Scatter(
-                x=df.index, y=[rsi] * len(df),
+                x=df.index, y=ta.momentum.RSIIndicator(df['Close'], window=14).rsi(),
                 mode='lines',
                 name='RSI (14)',
                 line=dict(color='purple', width=2)
