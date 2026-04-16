@@ -13,7 +13,7 @@ def get_fmp_key():
     except Exception:
         return os.getenv("FMP_API_KEY", "")
 
-FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
+FMP_BASE_URL = "https://financialmodelingprep.com/stable"
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def fetch_fmp_halal_metrics(symbol: str) -> Optional[Dict]:
@@ -29,7 +29,7 @@ def fetch_fmp_halal_metrics(symbol: str) -> Optional[Dict]:
     symbol = symbol.strip().upper()
     try:
         # 1. Get Balance Sheet for Assets and Debt
-        bs_url = f"{FMP_BASE_URL}/balance-sheet-statement/{symbol}?limit=1&apikey={api_key}"
+        bs_url = f"{FMP_BASE_URL}/balance-sheet-statement?symbol={symbol}&limit=1&apikey={api_key}"
         bs_res = requests.get(bs_url, timeout=10)
         bs_res.raise_for_status()
         bs_data = bs_res.json()
@@ -42,7 +42,7 @@ def fetch_fmp_halal_metrics(symbol: str) -> Optional[Dict]:
         total_debt = latest_bs.get('totalDebt', 0)
         
         # 2. Get Income Statement for Interest Income
-        is_url = f"{FMP_BASE_URL}/income-statement/{symbol}?limit=1&apikey={api_key}"
+        is_url = f"{FMP_BASE_URL}/income-statement?symbol={symbol}&limit=1&apikey={api_key}"
         is_res = requests.get(is_url, timeout=10)
         is_data = is_res.json() if is_res.status_code == 200 else []
         
@@ -53,7 +53,7 @@ def fetch_fmp_halal_metrics(symbol: str) -> Optional[Dict]:
             total_revenue = is_data[0].get('revenue', 0)
 
         # 3. Get Quote for Market Cap
-        quote_url = f"{FMP_BASE_URL}/quote/{symbol}?apikey={api_key}"
+        quote_url = f"{FMP_BASE_URL}/quote?symbol={symbol}&apikey={api_key}"
         quote_res = requests.get(quote_url, timeout=10)
         quote_res.raise_for_status()
         quote_data = quote_res.json()
