@@ -8,6 +8,7 @@ from portfolio import get_portfolio_summary, calculate_portfolio_gains_if_invest
 import time
 import logging
 from zakat_calculator import render_zakat_page
+from valuation import render_valuation_metrics, render_company_news
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -215,6 +216,12 @@ elif page == "Stock Analysis":
                         st.write(f"**Fundamental Score:** {rec['fundamental_score']:.0f}/100")
 
                     st.markdown("---")
+
+                    st.markdown("---")
+                    render_valuation_metrics(symbol, tech['current_price'])
+                    
+                    st.markdown("---")
+                    render_company_news(symbol)
 
                     # Halal screening details
                     st.subheader("✅ Halal Compliance")
