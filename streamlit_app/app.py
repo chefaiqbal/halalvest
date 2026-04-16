@@ -7,6 +7,7 @@ from charting import create_price_chart, create_comparison_chart, create_volume_
 from portfolio import get_portfolio_summary, calculate_portfolio_gains_if_invested
 import time
 import logging
+from zakat_calculator import render_zakat_page
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -68,7 +69,7 @@ Track halal-screened stocks, get AI-powered buy/sell/hold recommendations, and m
 # Sidebar navigation
 st.sidebar.title("Navigation")
 page = st.sidebar.radio("Choose a page:",
-    ["Dashboard", "Stock Analysis", "Charts & Comparison", "Portfolio Performance", "Halal Screening", "My Watchlist", "About"])
+    ["Dashboard", "Stock Analysis", "Charts & Comparison", "Portfolio Performance", "Halal Screening", "My Watchlist", "Zakat & Purification", "About"])
 
 # ==================== DASHBOARD PAGE ====================
 if page == "Dashboard":
@@ -444,6 +445,10 @@ elif page == "My Watchlist":
                     remove_from_watchlist(symbol)
                     st.rerun()
 
+
+# ==================== ABOUT PAGE ====================
+elif page == "Zakat & Purification":
+    render_zakat_page()
 
 # ==================== ABOUT PAGE ====================
 elif page == "About":
