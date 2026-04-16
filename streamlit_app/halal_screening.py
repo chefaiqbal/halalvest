@@ -6,7 +6,7 @@ Uses Finnhub API for reliable data fetching
 
 from finnhub_client import get_company_profile, get_fundamental_ratios
 from fmp_client import get_halal_metrics_fmp
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 
 # List of prohibited sectors (haram)
 PROHIBITED_SECTORS = {
