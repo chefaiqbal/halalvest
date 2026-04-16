@@ -15,7 +15,7 @@ except Exception:
 FMP_BASE_URL = "https://financialmodelingprep.com/api/v3"
 
 @st.cache_data(ttl=3600, show_spinner=False)
-def get_halal_metrics_fmp(symbol: str) -> Optional[Dict]:
+def fetch_fmp_halal_metrics(symbol: str) -> Optional[Dict]:
     """
     Fetches raw financial metrics for Halal compliance testing:
     Total Debt, Total Assets, Market Cap

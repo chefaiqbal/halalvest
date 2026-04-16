@@ -5,7 +5,7 @@ Uses Finnhub API for reliable data fetching
 """
 
 from finnhub_client import get_company_profile, get_fundamental_ratios
-from fmp_client import get_halal_metrics_fmp
+from fmp_client import fetch_fmp_halal_metrics
 from typing import List, Dict, Tuple, Optional
 
 # List of prohibited sectors (haram)
@@ -195,7 +195,7 @@ def screen_stock_halal(symbol: str) -> Dict:
     # If successful, use them to overwrite inaccurate Finnhub DE where possible
     fmp_metrics = None
     try:
-        fmp_metrics = get_halal_metrics_fmp(symbol)
+        fmp_metrics = fetch_fmp_halal_metrics(symbol)
     except Exception:
         pass
         
