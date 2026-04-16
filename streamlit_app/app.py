@@ -5,7 +5,6 @@ from halal_screening import get_halal_stocks_list, screen_stock_halal
 from recommendation_engine import get_recommendation
 from charting import create_price_chart, create_comparison_chart, create_volume_chart
 from portfolio import get_portfolio_summary, calculate_portfolio_gains_if_invested
-import yfinance as yf
 import time
 
 # Page config
@@ -118,7 +117,7 @@ elif page == "Stock Analysis":
     if 'analyze_symbol' in st.session_state:
         symbol = st.session_state.analyze_symbol
 
-        with st.spinner(f"Analyzing {symbol}... (Please wait, fetching data from Yahoo Finance)"):
+        with st.spinner(f"Analyzing {symbol}... (Please wait, fetching data from Finnhub):"):
             try:
                 # Get recommendation
                 rec = get_recommendation(symbol)
@@ -126,16 +125,17 @@ elif page == "Stock Analysis":
                 if 'error' in rec:
                     st.error(f"❌ Error: {rec['error']}")
                     st.warning("""
-**Yahoo Finance API Issue:** The stock data service is currently unstable.
+**Finnhub API Issue:** Could not fetch stock data.
 
 **What to try:**
-1. Wait a few moments and try again
-2. Try a different stock symbol
-3. Refresh the page
-4. If it persists, Yahoo Finance may be experiencing outages
+1. Make sure you've set up your Finnhub API key in Streamlit Secrets
+2. Check that your API is valid at https://finnhub.io
+3. Wait a moment and try again
+4. Try a different stock symbol
 
-Common affected stocks: AAPL, MSFT, NVDA (high-traffic tokens)
-Try: JNJ, WMT, KO, PG (more stable)
+**Setup Instructions:**
+- Go to https://finnhub.io/register?plan=free to get a free API key
+- Add it to Streamlit Secrets as FINNHUB_API_KEY
                     """)
                 else:
                     # Halal screening
@@ -204,7 +204,7 @@ Try: JNJ, WMT, KO, PG (more stable)
                     st.info(f"**Recommendation:** {rec['explanation']}")
             except Exception as e:
                 st.error(f"❌ An error occurred: {str(e)}")
-                st.info("💡 This often happens due to Yahoo Finance rate limiting. Please try again in a moment.")
+                st.info("💡 Please ensure your Finnhub API key is set up in Streamlit Secrets (FINNHUB_API_KEY)")
 
 
 # ==================== HALAL SCREENING PAGE ====================
@@ -422,8 +422,8 @@ elif page == "About":
     - Past performance doesn't guarantee future results
 
     ### Data Sources:
-    - Stock data: Yahoo Finance
-    - Company information: Yahoo Finance API
+    - Stock data: Finnhub API (free tier: 60 calls/minute)
+    - Company information: Finnhub API
 
     ### Technology:
     - Backend: Python
