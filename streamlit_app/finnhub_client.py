@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 # Get API key from environment or Streamlit secrets
 try:
     FINNHUB_API_KEY = st.secrets.get("FINNHUB_API_KEY", os.getenv("FINNHUB_API_KEY", ""))
-except:
+except Exception as e:
     FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY", "")
 
 logger.info(f"🔑 API Key loaded: {bool(FINNHUB_API_KEY)}")
@@ -80,16 +80,19 @@ def _make_request(endpoint: str, params: Dict = None, max_retries: int = 3) -> O
     return None
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_quote(symbol: str) -> Optional[Dict]:
     """Get real-time stock quote"""
     return _make_request("/quote", {"symbol": symbol})
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_company_profile(symbol: str) -> Optional[Dict]:
     """Get company profile (sector, industry, name, etc.)"""
     return _make_request("/stock/profile2", {"symbol": symbol})
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_fundamental_ratios(symbol: str) -> Optional[Dict]:
     """Get fundamental ratios (P/E, ROE, etc.)"""
     return _make_request("/stock/metric", {
@@ -98,6 +101,8 @@ def get_fundamental_ratios(symbol: str) -> Optional[Dict]:
     })
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+@st.cache_data(ttl=3600, show_spinner=False)
 def get_historical_data(symbol: str, resolution: str = 'D', count: int = 260) -> Optional[pd.DataFrame]:
     """
     Get historical candlestick data
@@ -148,7 +153,7 @@ def get_company_news(symbol: str, limit: int = 5) -> List[Dict]:
             "limit": limit
         })
         return data if data else []
-    except:
+    except Exception as e:
         return []
 
 
@@ -179,7 +184,7 @@ def calculate_rsi(df: pd.DataFrame, period: int = 14) -> Optional[float]:
         rs = gain / loss
         rsi = 100 - (100 / (1 + rs))
         return rsi.iloc[-1]
-    except:
+    except Exception as e:
         return None
 
 
@@ -198,7 +203,7 @@ def calculate_macd(df: pd.DataFrame) -> Dict[str, float]:
             'signal': signal.iloc[-1],
             'histogram': histogram.iloc[-1],
         }
-    except:
+    except Exception as e:
         return {'macd': 0, 'signal': 0, 'histogram': 0}
 
 
@@ -227,5 +232,5 @@ def calculate_volume_trend(df: pd.DataFrame, period: int = 20) -> Dict:
             'avg_volume': avg_volume,
             'ratio': volume_ratio
         }
-    except:
+    except Exception as e:
         return {'trend': 'N/A', 'avg_volume': 0, 'current_volume': 0, 'ratio': 1}
