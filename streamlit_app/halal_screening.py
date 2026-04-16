@@ -103,6 +103,38 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
         return None, 'N/A'
 
 
+def evaluate_methodologies(de_ratio: float, sector_compliant: bool) -> Dict:
+    """
+    Evaluates the stock against the major Islamic Finance Methodologies.
+    Returns pass/fail status for AAOIFI, S&P Shariah, and FTSE Shariah.
+    """
+    if de_ratio is None:
+        return {}
+
+    # Standard proxies using D/E ratio when advanced metrics (like 36-month avg Market Cap) aren't available on free API
+    # AAOIFI: Debt / Market Cap < 30% (Proxy: D/E < 0.43 to imply D/A < 30%)
+    # S&P Shariah: Debt / Market Cap < 33% (Proxy: D/E < 0.49 to imply D/A < 33%)
+    # FTSE Shariah: Debt / Total Assets < 33.3% (Proxy: D/E < 0.50 to equal D/A < 33.3%)
+    
+    return {
+        "AAOIFI": {
+            "pass": sector_compliant and de_ratio < 0.43,
+            "rule": "Debt / Market Cap < 30%",
+            "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.43) else "❌ Fail"
+        },
+        "S&P Shariah": {
+            "pass": sector_compliant and de_ratio < 0.49,
+            "rule": "Debt / 36mo avg Market Cap < 33%",
+            "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.49) else "❌ Fail"
+        },
+        "FTSE Shariah": {
+            "pass": sector_compliant and de_ratio < 0.50,
+            "rule": "Debt / Total Assets < 33.3%",
+            "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.50) else "❌ Fail"
+        }
+    }
+
+
 def screen_stock_halal(symbol: str) -> Dict:
     """
     Screen a stock for halal compliance
@@ -151,7 +183,8 @@ def screen_stock_halal(symbol: str) -> Dict:
         'debt_to_equity': de_ratio,
         'de_status': de_status,
         'issues': issues,
-        'details': info
+        'details': info,
+        'methodologies': evaluate_methodologies(de_ratio, sector_compliant)
     }
 
 

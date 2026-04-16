@@ -212,6 +212,18 @@ elif page == "Stock Analysis":
                                 st.write(f"• {issue}")
 
                         st.markdown("---")
+                        st.subheader("⚖️ Compare Islamic Methodologies")
+                        if 'methodologies' in halal and halal['methodologies']:
+                            m_cols = st.columns(len(halal['methodologies']))
+                            for i, (m_name, m_data) in enumerate(halal['methodologies'].items()):
+                                with m_cols[i]:
+                                    st.markdown(f"**{m_name}**")
+                                    st.write(m_data['status_text'])
+                                    st.caption(f"_{m_data['rule']}_")
+                        else:
+                            st.caption("Methodology comparison data is unavailable for this stock due to missing D/E ratio.")
+
+                        st.markdown("---")
                         st.info(f"**Recommendation:** {rec['explanation']}")
 
                     with tab2:
@@ -312,6 +324,18 @@ elif page == "Halal Screening":
                 st.write(f"• {issue}")
         else:
             st.success("No compliance issues found! ✅")
+
+        st.markdown("---")
+        st.subheader("⚖️ Compare Islamic Methodologies")
+        if 'methodologies' in halal and halal['methodologies']:
+            m_cols = st.columns(len(halal['methodologies']))
+            for i, (m_name, m_data) in enumerate(halal['methodologies'].items()):
+                with m_cols[i]:
+                    st.markdown(f"**{m_name}**")
+                    st.write(m_data['status_text'])
+                    st.caption(f"_{m_data['rule']}_")
+        else:
+            st.caption("Methodology comparison data is unavailable for this stock due to missing D/E ratio.")
 
 
 # ==================== CHARTS & COMPARISON PAGE ====================
