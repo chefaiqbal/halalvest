@@ -4,6 +4,7 @@ Provides reliable stock data fetching from Finnhub (60 calls/min free tier)
 """
 
 import requests
+import yfinance as yf
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
@@ -45,6 +46,10 @@ def _make_request(endpoint: str, params: Dict = None, max_retries: int = 3) -> O
     url = f"{FINNHUB_BASE_URL}{endpoint}"
     if params is None:
         params = {}
+        
+    if 'symbol' in params and isinstance(params['symbol'], str):
+        params['symbol'] = params['symbol'].strip().upper()
+        
     params['token'] = FINNHUB_API_KEY
 
     logger.info(f"📡 Making request to: {endpoint}")
@@ -105,43 +110,35 @@ def get_fundamental_ratios(symbol: str) -> Optional[Dict]:
 @st.cache_data(ttl=3600, show_spinner=False)
 def get_historical_data(symbol: str, resolution: str = 'D', count: int = 260) -> Optional[pd.DataFrame]:
     """
-    Get historical candlestick data
-    resolution: D=daily, W=weekly, M=monthly
-    count: number of candles (260 = ~1 year of trading days)
+    Get historical candlestick data using yfinance (Finnhub Free blocks /stock/candle)
     """
     try:
-        # Get current timestamp
-        to_timestamp = int(time.time())
-        # Calculate from_timestamp (approximately 1 year ago)
-        from_timestamp = to_timestamp - (count * 86400)  # Approximate
-
-        data = _make_request("/stock/candle", {
-            "symbol": symbol,
-            "resolution": resolution,
-            "from": from_timestamp,
-            "to": to_timestamp
-        })
-
-        if not data or data.get('s') == 'no_data':
-            return pd.DataFrame()
-
-        # Convert Finnhub format to DataFrame
-        df = pd.DataFrame({
-            'Date': pd.to_datetime(data.get('t', []), unit='s'),
-            'Open': data.get('o', []),
-            'High': data.get('h', []),
-            'Low': data.get('l', []),
-            'Close': data.get('c', []),
-            'Volume': data.get('v', [])
-        })
-
+        symbol = symbol.strip().upper()
+        # Convert daily count to rough period equivalent for yfinance.
+        period = '1y'
+        if count <= 5: period = '5d'
+        elif count <= 21: period = '1mo'
+        elif count <= 63: period = '3mo'
+        elif count <= 126: period = '6mo'
+        elif count <= 504: period = '2y'
+        elif count <= 1260: period = '5y'
+        
+        ticker = yf.Ticker(symbol)
+        df = ticker.history(period=period)
+        
         if df.empty:
-            return df
-
-        df.set_index('Date', inplace=True)
-        return df.sort_index()
-
+            return pd.DataFrame()
+            
+        # Standardize expected columns
+        df = df[['Open', 'High', 'Low', 'Close', 'Volume']].copy()
+        df.index.name = 'Date'
+        if df.index.tz is not None:
+            df.index = df.index.tz_convert(None)
+            
+        df = df.tail(count)
+        return df
     except Exception as e:
+        logger.error(f"Error fetching historical data: {e}")
         return pd.DataFrame()
 
 
