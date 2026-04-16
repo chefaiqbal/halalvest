@@ -12,6 +12,7 @@ import time
 import os
 import streamlit as st
 import logging
+from datetime import datetime, timedelta
 
 # Setup logging
 logging.basicConfig(level=logging.DEBUG)
@@ -159,11 +160,16 @@ def get_historical_data(symbol: str, resolution: str = 'D', count: int = 260) ->
 def get_company_news(symbol: str, limit: int = 5) -> List[Dict]:
     """Get latest company news"""
     try:
+        end_date = datetime.now().strftime('%Y-%m-%d')
+        start_date = (datetime.now() - timedelta(days=30)).strftime('%Y-%m-%d')
         data = _make_request("/company-news", {
             "symbol": symbol,
-            "limit": limit
+            "from": start_date,
+            "to": end_date
         })
-        return data if data else []
+        if data and isinstance(data, list):
+            return data[:limit]
+        return []
     except Exception as e:
         return []
 
