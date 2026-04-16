@@ -6,6 +6,12 @@ from recommendation_engine import get_recommendation
 from charting import create_price_chart, create_comparison_chart, create_volume_chart
 from portfolio import get_portfolio_summary, calculate_portfolio_gains_if_invested
 import time
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+logger.info("🚀 HalalVest app started")
 
 # Page config
 st.set_page_config(
@@ -119,10 +125,13 @@ elif page == "Stock Analysis":
 
         with st.spinner(f"Analyzing {symbol}... (Please wait, fetching data from Finnhub):"):
             try:
+                logger.info(f"📊 Analyzing stock: {symbol}")
                 # Get recommendation
                 rec = get_recommendation(symbol)
+                logger.info(f"✅ Recommendation received: {rec.get('recommendation', 'N/A')}")
 
                 if 'error' in rec:
+                    logger.error(f"❌ Error in recommendation: {rec['error']}")
                     st.error(f"❌ Error: {rec['error']}")
                     st.warning("""
 **Finnhub API Issue:** Could not fetch stock data.
@@ -203,6 +212,7 @@ elif page == "Stock Analysis":
                     st.markdown("---")
                     st.info(f"**Recommendation:** {rec['explanation']}")
             except Exception as e:
+                logger.error(f"❌ Exception occurred: {str(e)}", exc_info=True)
                 st.error(f"❌ An error occurred: {str(e)}")
                 st.info("💡 Please ensure your Finnhub API key is set up in Streamlit Secrets (FINNHUB_API_KEY)")
 

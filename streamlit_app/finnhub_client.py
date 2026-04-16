@@ -10,12 +10,25 @@ from typing import Dict, List, Optional, Tuple
 import time
 import os
 import streamlit as st
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
 
 # Get API key from environment or Streamlit secrets
 try:
     FINNHUB_API_KEY = st.secrets.get("FINNHUB_API_KEY", os.getenv("FINNHUB_API_KEY", ""))
 except:
     FINNHUB_API_KEY = os.getenv("FINNHUB_API_KEY", "")
+
+logger.info(f"🔑 API Key loaded: {bool(FINNHUB_API_KEY)}")
+if FINNHUB_API_KEY:
+    logger.info(f"✅ API Key length: {len(FINNHUB_API_KEY)} characters")
+    logger.info(f"📌 API Key preview: {FINNHUB_API_KEY[:10]}...")
+else:
+    logger.error("❌ ERROR: FINNHUB_API_KEY is not set!")
+    print("❌ ERROR: FINNHUB_API_KEY is not configured in Streamlit Secrets")
 
 FINNHUB_BASE_URL = "https://finnhub.io/api/v1"
 REQUEST_DELAY = 1.1  # 1.1 seconds between requests to stay under 60/min limit
@@ -26,6 +39,7 @@ def _make_request(endpoint: str, params: Dict = None, max_retries: int = 3) -> O
     Make a request to Finnhub API with retry logic and rate limiting
     """
     if not FINNHUB_API_KEY:
+        logger.error("❌ No API key available for request")
         return None
 
     url = f"{FINNHUB_BASE_URL}{endpoint}"
@@ -33,16 +47,19 @@ def _make_request(endpoint: str, params: Dict = None, max_retries: int = 3) -> O
         params = {}
     params['token'] = FINNHUB_API_KEY
 
+    logger.info(f"📡 Making request to: {endpoint}")
     retry_delay = 2
     for attempt in range(max_retries):
         try:
             time.sleep(REQUEST_DELAY)  # Rate limiting
             response = requests.get(url, params=params, timeout=10)
+            logger.info(f"📊 Response status: {response.status_code}")
             response.raise_for_status()
             data = response.json()
 
             # Check for rate limit response
             if isinstance(data, dict) and data.get('error'):
+                logger.error(f"⚠️ API Error: {data.get('error')}")
                 if 'rate' in data.get('error', '').lower():
                     if attempt < max_retries - 1:
                         time.sleep(retry_delay)
@@ -50,8 +67,10 @@ def _make_request(endpoint: str, params: Dict = None, max_retries: int = 3) -> O
                         continue
                 return None
 
+            logger.info(f"✅ Data received successfully from {endpoint}")
             return data
         except requests.exceptions.RequestException as e:
+            logger.error(f"❌ Request error on attempt {attempt + 1}/{max_retries}: {str(e)}")
             if attempt < max_retries - 1:
                 time.sleep(retry_delay)
                 retry_delay *= 2
