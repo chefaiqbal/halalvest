@@ -193,53 +193,57 @@ elif page == "Stock Analysis":
 
                     st.markdown("---")
 
-                    # Analysis breakdown
-                    col1, col2 = st.columns(2)
+                    # Use tabs for a cleaner layout
+                    tab1, tab2, tab3, tab4 = st.tabs(["Overview", "Technical Analysis", "Fundamental & Valuation", "News"])
 
-                    with col1:
+                    with tab1:
+                        st.subheader("✅ Halal Compliance")
+                        col1, col2, col3 = st.columns(3)
+                        with col1:
+                            st.write(f"**Sector:** {halal['sector']}")
+                        with col2:
+                            st.write(f"**Compliance Score:** {halal['compliance_score']:.0f}%")
+                        with col3:
+                            st.write(f"**D/E Ratio:** {halal['de_status']}")
+
+                        if halal['issues']:
+                            st.warning("**⚠️ Issues Found:**")
+                            for issue in halal['issues']:
+                                st.write(f"• {issue}")
+
+                        st.markdown("---")
+                        st.info(f"**Recommendation:** {rec['explanation']}")
+
+                    with tab2:
                         st.subheader("📊 Technical Analysis")
                         tech = rec['technical_analysis']
-                        st.write(f"**Current Price:** ${tech['current_price']:.2f}")
-                        st.write(f"**Change:** {tech['price_change_pct']:+.2f}%")
-                        st.write(f"**Trend:** {tech['trend']}")
-                        st.write(f"**RSI (14):** {tech['rsi']:.2f}" if tech.get('rsi') else "RSI: N/A")
-                        st.write(f"**Volume Trend:** {tech['volume']['trend']}")
-                        st.write(f"**Technical Score:** {rec['technical_score']:.0f}/100")
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.metric("Current Price", f"${tech['current_price']:.2f}", f"{tech['price_change_pct']:+.2f}%")
+                            st.write(f"**Trend:** {tech['trend']}")
+                        with col2:
+                            st.write(f"**RSI (14):** {tech['rsi']:.2f}" if tech.get('rsi') else "RSI: N/A")
+                            st.write(f"**Volume Trend:** {tech['volume']['trend']}")
+                            st.write(f"**Technical Score:** {rec['technical_score']:.0f}/100")
 
-                    with col2:
+                    with tab3:
                         st.subheader("💼 Fundamental Analysis")
                         fund = rec['fundamental_analysis']
-                        st.write(f"**P/E Ratio:** {fund['pe_interpretation']}")
-                        st.write(f"**Debt-to-Equity:** {fund['de_interpretation']}")
-                        st.write(f"**ROE:** {fund['roe_interpretation']}")
-                        st.write(f"**Profit Margin:** {fund['pm_interpretation']}")
-                        st.write(f"**Fundamental Score:** {rec['fundamental_score']:.0f}/100")
+                        
+                        col1, col2 = st.columns(2)
+                        with col1:
+                            st.write(f"**P/E Ratio:** {fund['pe_interpretation']}")
+                            st.write(f"**Debt-to-Equity:** {fund['de_interpretation']}")
+                        with col2:
+                            st.write(f"**ROE:** {fund['roe_interpretation']}")
+                            st.write(f"**Profit Margin:** {fund['pm_interpretation']}")
+                            st.write(f"**Fundamental Score:** {rec['fundamental_score']:.0f}/100")
+                            
+                        st.markdown("---")
+                        render_valuation_metrics(symbol, tech['current_price'])
 
-                    st.markdown("---")
-
-                    st.markdown("---")
-                    render_valuation_metrics(symbol, tech['current_price'])
-                    
-                    st.markdown("---")
-                    render_company_news(symbol)
-
-                    # Halal screening details
-                    st.subheader("✅ Halal Compliance")
-                    col1, col2, col3 = st.columns(3)
-                    with col1:
-                        st.write(f"**Sector:** {halal['sector']}")
-                    with col2:
-                        st.write(f"**Compliance Score:** {halal['compliance_score']:.0f}%")
-                    with col3:
-                        st.write(f"**D/E Ratio:** {halal['de_status']}")
-
-                    if halal['issues']:
-                        st.warning("**⚠️ Issues Found:**")
-                        for issue in halal['issues']:
-                            st.write(f"• {issue}")
-
-                    st.markdown("---")
-                    st.info(f"**Recommendation:** {rec['explanation']}")
+                    with tab4:
+                        render_company_news(symbol)
             except Exception as e:
                 logger.error(f"❌ Exception occurred: {str(e)}", exc_info=True)
                 st.error(f"❌ An error occurred: {str(e)}")
