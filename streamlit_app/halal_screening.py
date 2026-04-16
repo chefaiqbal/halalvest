@@ -5,6 +5,7 @@ Uses Finnhub API for reliable data fetching
 """
 
 from finnhub_client import get_company_profile, get_fundamental_ratios
+from fmp_client import get_halal_metrics_fmp
 from typing import List, Dict, Tuple
 
 # List of prohibited sectors (haram)
@@ -103,31 +104,58 @@ def check_debt_to_equity(symbol: str) -> Tuple[float, str]:
         return None, 'N/A'
 
 
-def evaluate_methodologies(de_ratio: float, sector_compliant: bool) -> Dict:
+def evaluate_methodologies(de_ratio: float, sector_compliant: bool, fmp_metrics: Optional[Dict] = None) -> Dict:
     """
     Evaluates the stock against the major Islamic Finance Methodologies.
-    Returns pass/fail status for AAOIFI, S&P Shariah, and FTSE Shariah.
+    Uses precise Balance Sheet data from FMP if available, falling back to Finnhub proxies.
     """
+    if fmp_metrics and fmp_metrics.get("total_assets", 0) > 0:
+        market_cap = fmp_metrics.get("market_cap", 0)
+        total_debt = fmp_metrics.get("total_debt", 0)
+        total_assets = fmp_metrics.get("total_assets", 0)
+        
+        # Calculate precise balance sheet metrics
+        debt_to_mc = (total_debt / market_cap) if market_cap > 0 else float('inf')
+        debt_to_assets = (total_debt / total_assets) if total_assets > 0 else float('inf')
+        
+        return {
+            "AAOIFI (Accurate)": {
+                "pass": sector_compliant and debt_to_mc < 0.30,
+                "rule": f"Debt / Market Cap < 30% (Actual: {debt_to_mc*100:.1f}%)",
+                "status_text": "✅ Pass" if (sector_compliant and debt_to_mc < 0.30) else "❌ Fail"
+            },
+            "S&P Shariah (Proxy)": {
+                "pass": sector_compliant and debt_to_mc < 0.33,
+                "rule": f"Debt / Curr. Market Cap < 33% (Actual: {debt_to_mc*100:.1f}%)",
+                "status_text": "✅ Pass" if (sector_compliant and debt_to_mc < 0.33) else "❌ Fail"
+            },
+            "FTSE Shariah (Accurate)": {
+                "pass": sector_compliant and debt_to_assets < 0.333,
+                "rule": f"Debt / Total Assets < 33.3% (Actual: {debt_to_assets*100:.1f}%)",
+                "status_text": "✅ Pass" if (sector_compliant and debt_to_assets < 0.333) else "❌ Fail"
+            }
+        }
+
+    # STANDARD PROXIES (If FMP API is not configured)
     if de_ratio is None:
         return {}
 
-    # Standard proxies using D/E ratio when advanced metrics (like 36-month avg Market Cap) aren't available on free API
     # AAOIFI: Debt / Market Cap < 30% (Proxy: D/E < 0.43 to imply D/A < 30%)
     # S&P Shariah: Debt / Market Cap < 33% (Proxy: D/E < 0.49 to imply D/A < 33%)
     # FTSE Shariah: Debt / Total Assets < 33.3% (Proxy: D/E < 0.50 to equal D/A < 33.3%)
     
     return {
-        "AAOIFI": {
+        "AAOIFI (Proxy)": {
             "pass": sector_compliant and de_ratio < 0.43,
             "rule": "Debt / Market Cap < 30%",
             "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.43) else "❌ Fail"
         },
-        "S&P Shariah": {
+        "S&P Shariah (Proxy)": {
             "pass": sector_compliant and de_ratio < 0.49,
             "rule": "Debt / 36mo avg Market Cap < 33%",
             "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.49) else "❌ Fail"
         },
-        "FTSE Shariah": {
+        "FTSE Shariah (Proxy)": {
             "pass": sector_compliant and de_ratio < 0.50,
             "rule": "Debt / Total Assets < 33.3%",
             "status_text": "✅ Pass" if (sector_compliant and de_ratio < 0.50) else "❌ Fail"
@@ -162,12 +190,30 @@ def screen_stock_halal(symbol: str) -> Dict:
 
     # Check debt-to-equity
     de_ratio, de_status = check_debt_to_equity(symbol)
+    
+    # Try fetching FMP raw balance sheet metrics
+    # If successful, use them to overwrite inaccurate Finnhub DE where possible
+    fmp_metrics = None
+    try:
+        fmp_metrics = get_halal_metrics_fmp(symbol)
+    except Exception:
+        pass
+        
     if de_ratio is not None:
         if de_ratio < 1.5:
             compliance_scores.append(80)
         else:
             compliance_scores.append(40)
             issues.append(f"High debt-to-equity ratio: {de_ratio:.2f}")
+
+    # Check FMP specific Interest Income non-permissible rule (<5%)
+    if fmp_metrics and fmp_metrics.get("total_revenue", 0) > 0:
+        int_revenue = fmp_metrics.get("interest_income", 0)
+        total_revenue = fmp_metrics.get("total_revenue", 0)
+        impermissible_income_ratio = int_revenue / total_revenue
+        if impermissible_income_ratio > 0.05:
+            compliance_scores.append(0)
+            issues.append(f"Impermissible income ({impermissible_income_ratio*100:.1f}%) exceeds 5% limit.")
 
     # Calculate overall compliance score
     overall_score = sum(compliance_scores) / len(compliance_scores) if compliance_scores else 0
@@ -184,7 +230,7 @@ def screen_stock_halal(symbol: str) -> Dict:
         'de_status': de_status,
         'issues': issues,
         'details': info,
-        'methodologies': evaluate_methodologies(de_ratio, sector_compliant)
+        'methodologies': evaluate_methodologies(de_ratio, sector_compliant, fmp_metrics)
     }
 
 
